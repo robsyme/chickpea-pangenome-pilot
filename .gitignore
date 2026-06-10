@@ -1,0 +1,10 @@
+work/
+results/
+.nextflow/
+.nextflow.log*
+__pycache__/
+*.pyc
+*.fastq.gz
+
+# local copyrighted source material (not for distribution)
+library/
