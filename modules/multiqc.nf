@@ -11,7 +11,8 @@ process MULTIQC {
 
     output:
     report: Path = file('multiqc_report.html')
-    data: Path = file('multiqc_data')
+    // MultiQC names the data dir after --filename: multiqc_report -> multiqc_report_data
+    data: Path = file('multiqc_report_data')
 
     script:
     """
@@ -20,7 +21,7 @@ process MULTIQC {
 
     stub:
     """
-    mkdir -p multiqc_data
+    mkdir -p multiqc_report_data
     echo '<html><body>stub</body></html>' > multiqc_report.html
     """
 }
