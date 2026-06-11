@@ -24,14 +24,34 @@ process FETCH_READS {
     def acc = run.accession
     def n_lines = n_reads * 4
     """
-    set -e
+    set -euo pipefail
+
     api="https://www.ebi.ac.uk/ena/portal/api/filereport?accession=${acc}&result=read_run&fields=fastq_ftp&format=tsv"
-    ftp=\$(curl -sL "\$api" | awk -F'\\t' 'NR==1{for(i=1;i<=NF;i++) if(\$i=="fastq_ftp") c=i} NR==2{print \$c}')
+    ftp=\$(curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "\$api" | awk -F'\\t' 'NR==1{for(i=1;i<=NF;i++) if(\$i=="fastq_ftp") c=i} NR==2{print \$c}')
     if [ -z "\$ftp" ]; then echo "ERROR: no fastq_ftp returned for ${acc}" >&2; exit 1; fi
     r1url=\$(echo "\$ftp" | cut -d';' -f1)
     r2url=\$(echo "\$ftp" | cut -d';' -f2)
-    curl -sL "https://\${r1url}" | gzip -dc | head -n ${n_lines} | gzip -c > ${acc}.subset_R1.fastq.gz
-    curl -sL "https://\${r2url}" | gzip -dc | head -n ${n_lines} | gzip -c > ${acc}.subset_R2.fastq.gz
+
+    # Stream, decompress, take the first ${n_lines} lines, recompress. \`head\`
+    # closing the pipe sends SIGPIPE upstream (expected), so the pipe exit status
+    # is unreliable -- we validate the read count of the OUTPUT instead. \`curl
+    # --fail\` turns HTTP errors into failures (not silent HTML), and --retry rides
+    # out transient ENA hiccups. A short/empty output is a hard failure, which the
+    # process errorStrategy then retries.
+    get_subset() {
+        url="\$1"; out="\$2"
+        curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "https://\${url}" \\
+            | gzip -dc | head -n ${n_lines} | gzip -c > "\$out" || true
+        got=\$(gzip -dc "\$out" 2>/dev/null | wc -l) || got=0
+        got=\$(echo "\$got" | tr -d ' ')
+        if [ "\$got" -ne ${n_lines} ]; then
+            echo "ERROR: \$out truncated -- got \$got of ${n_lines} expected lines (download failed)" >&2
+            exit 1
+        fi
+    }
+
+    get_subset "\$r1url" ${acc}.subset_R1.fastq.gz
+    get_subset "\$r2url" ${acc}.subset_R2.fastq.gz
     """
 
     stub:

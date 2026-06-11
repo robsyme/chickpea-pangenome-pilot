@@ -28,14 +28,14 @@ workflow {
     runs = channel.fromList(params.accessions)
         .map { acc -> record(accession: acc) }
 
-    n_reads   = channel.value(params.check_reads)
-    whitelist = channel.value(file("${projectDir}/assets/stlfr_barcode_whitelist.txt"))
-
-    pass_frac = channel.value(params.pass_fraction as Float)
-
-    reads     = FETCH_READS(runs, n_reads)
+    reads     = FETCH_READS(runs, params.check_reads)
     structure = READ_STRUCTURE(reads)
-    barcode   = BARCODE_CHECK(reads, whitelist, n_reads, pass_frac)
+    barcode   = BARCODE_CHECK(
+        reads, 
+        file("${projectDir}/assets/stlfr_barcode_whitelist.txt"), 
+        params.check_reads,
+        params.pass_fraction as Float
+    )
 
     // Gather all per-accession QC into one MultiQC report: seqkit stats (native
     // module) plus the barcode-integrity custom-content tables.
