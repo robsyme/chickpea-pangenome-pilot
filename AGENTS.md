@@ -204,6 +204,40 @@ pipeline script and Wave when the work directory is on S3 (both in place).
   50k local run. BARCODE_CHECK ran in ~12 s on a c6id.large spot instance,
   peak RSS ~574 MB.
 
+## Pipeline status: green end-to-end (2026-06-11)
+
+The full gate-zero pipeline runs green on Platform (run `5171JdUnvv2TDw`):
+FETCH_READS → READ_STRUCTURE + BARCODE_CHECK → MULTIQC, with caching working and the
+MultiQC report published (and surfaced via `tower.yml`). Gate PASS at 90.3%.
+
+Gotchas resolved this session (all real, all cost a run to find):
+
+- **Records must be built with `record(...)`, not `new SraRun(...)`.** The `new`
+  form makes a plain object hashed by Java identity (`SraRun@...`), so every run got a
+  different task hash and FETCH_READS never cached on resume. `dumpHashes = true` (set
+  on the Launchpad pipeline) showed the `SraRun` component hash changing between two
+  runs while everything else matched. Fixed by `record(accession: acc)`.
+- **Never put backticks in a process script string.** Escaped backticks in a comment
+  corrupted GString interpolation under the v2 parser, so `${n_lines}`/`${acc}`
+  rendered into the wrong positions.
+- **FETCH must validate output, not trust pipe exit status.** `curl -sL | gzip -dc |
+  head | gzip -c > out` swallows a bad download (the final gzip writes a ~20-byte empty
+  gz, exit 0). Use `curl --fail --retry --retry-all-errors` and validate the output
+  read count equals the requested line count.
+- **ENA objects can break transiently.** ENA served an empty directory for R1
+  (`SRR32381426_1.fastq.gz/`) on both HTTP and FTP for a while, then recovered. FETCH
+  now falls back to the `fastq-dl` tool (auto ENA→SRA) when the ENA stream fails.
+- **Use the prebuilt fastq-dl image, not a conda re-solve.** Wave-building
+  `fastq-dl` + extra utility packages pulled an incompatible `rich`
+  (`module 'rich' has no attribute 'console'`). Pin
+  `community.wave.seqera.io/library/fastq-dl:3.0.1--fa446f61dfc85bc3` (verified to carry
+  curl/gzip/awk/coreutils/python + a working fastq-dl).
+- **MultiQC names its data dir after `--filename`.** `--filename multiqc_report.html`
+  → `multiqc_report_data`, not `multiqc_data`; the process output must match.
+- **`tw runs relaunch --pull-latest` keeps the original run's commit.** To resume onto
+  newer code, pin `--commit-id $(git rev-parse HEAD)`; unchanged upstream tasks stay
+  cached, only edited ones re-run.
+
 ## Reference: local Nextflow source
 
 Authoritative Nextflow source (all version worktrees) is checked out at
