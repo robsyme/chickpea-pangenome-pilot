@@ -8,7 +8,10 @@ include { SraRun ; ReadPair } from '../types.nf'
 // the full run with an automatic ENA->SRA fallback, then subsample its output.
 process FETCH_READS {
     tag "${run.accession}"
-    conda 'bioconda::fastq-dl=3.0.1 conda-forge::curl conda-forge::gzip conda-forge::coreutils conda-forge::gawk'
+    // Prebuilt fastq-dl image (verified to carry curl, gzip, awk, coreutils, python and
+    // a working fastq-dl). Using the image directly avoids a Wave conda re-solve, which
+    // had pulled an incompatible `rich` and crashed fastq-dl in the fallback.
+    container 'community.wave.seqera.io/library/fastq-dl:3.0.1--fa446f61dfc85bc3'
 
     input:
     run: SraRun
