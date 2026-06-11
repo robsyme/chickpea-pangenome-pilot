@@ -11,7 +11,8 @@ the deposited data (NCBI BioProject PRJNA1225167) before committing to reassembl
 For each run accession it subsamples reads from ENA, summarises read structure with
 `seqkit`, and verifies barcode integrity against the BGI stLFR whitelist.
 
-The barcode check (`bin/stlfr_barcode_check.py`) detects where the three 10 bp
+The barcode check (`modules/barcode_check/resources/usr/bin/stlfr_barcode_check.py`,
+a module-scoped binary) detects where the three 10 bp
 barcodes sit in read2 empirically rather than assuming fixed offsets, because the
 deposited layout (barcodes at 100 / 116 / 132) differs from BGI's `split_barcode.pl`
 default. On the pilot cultivar (CBA Captain, SRR32381426) it found 87.6% of reads

@@ -186,8 +186,23 @@ Validated locally on a 50,000-read subsample pulled from ENA (2026-06-10):
   linked-reads. Gate zero is green for the pilot to proceed to the baseline stage.
 
 The pipeline implements this check generically (the `barcode_check` module +
-`bin/stlfr_barcode_check.py`, unit-tested in `tests/`). The Platform run over the
-full subsample is the formal record of this result.
+its module-scoped binary at
+`modules/barcode_check/resources/usr/bin/stlfr_barcode_check.py`, unit-tested in
+`tests/`). Module binaries require `nextflow.enable.moduleBinaries = true` in the
+pipeline script and Wave when the work directory is on S3 (both in place).
+
+**Formal Platform run (full 2M-read subsample):** run `2sSrLdl93wx6nA`
+(`gate-zero-SRR32381426-fullsubsample`) on `aws-batch-default`, 2026-06-11,
+**SUCCEEDED** — gate **PASS**. Published results:
+
+- `valid_fraction` = **0.903** (1,805,844 / 2,000,000 reads carry a valid barcode).
+- **1,657,967 distinct barcodes**, with a realistic reads-per-barcode tail (1.52M
+  singletons, 120k doubletons, down to a max of 14) — the genuine co-barcoding
+  signature, not random matching.
+- seqkit: R1 100 bp, R2 142 bp; Q20 97.1% / 95.7%; GC 33.2% / 39.6% (R1/R2).
+- Barcode offsets 100/116/132 detected on the full sample, consistent with the
+  50k local run. BARCODE_CHECK ran in ~12 s on a c6id.large spot instance,
+  peak RSS ~574 MB.
 
 ## Reference: local Nextflow source
 

@@ -1,6 +1,6 @@
 nextflow.enable.types = true
 
-include { ReadPair ; Result } from '../types.nf'
+include { ReadPair ; Result } from '../../types.nf'
 
 // Gate zero: verify the stLFR barcodes are intact in read2. Detects the insert
 // length empirically, then reports the fraction of reads carrying a valid
