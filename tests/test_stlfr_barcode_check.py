@@ -90,5 +90,43 @@ class TestAnalyze(unittest.TestCase):
         self.assertEqual(res["distinct_barcodes"], 2)
 
 
+class TestRenderMqc(unittest.TestCase):
+    def setUp(self):
+        self.res = {
+            "barcode_offsets": [100, 116, 132],
+            "n_total": 2000000,
+            "n_valid": 1805844,
+            "valid_fraction": 0.902922,
+            "distinct_barcodes": 1657967,
+            "r2_len_mode": 142,
+            "gate_pass": True,
+        }
+
+    def test_has_custom_content_config_header(self):
+        out = sbc.render_mqc("SRR32381426", self.res)
+        self.assertIn("# id: 'stlfr_barcode'", out)
+        self.assertIn("plot_type: 'table'", out)
+        self.assertIn("section_name:", out)
+
+    def test_data_row_keyed_by_sample_with_values(self):
+        out = sbc.render_mqc("SRR32381426", self.res)
+        # Locate the single data row (last non-empty, non-comment line).
+        rows = [ln for ln in out.splitlines() if ln and not ln.startswith("#")]
+        header, data = rows[0], rows[1]
+        self.assertEqual(header.split("\t")[0], "Sample")
+        cells = data.split("\t")
+        self.assertEqual(cells[0], "SRR32381426")
+        # valid percentage rendered to one decimal
+        self.assertIn("90.3", data)
+        self.assertIn("1657967", data)
+        self.assertIn("100;116;132", data)
+        self.assertIn("PASS", data)
+
+    def test_gate_fail_renders_fail(self):
+        res = dict(self.res, gate_pass=False)
+        out = sbc.render_mqc("S2", res)
+        self.assertIn("FAIL", out)
+
+
 if __name__ == "__main__":
     unittest.main()

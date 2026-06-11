@@ -131,6 +131,32 @@ def analyze(r2_seqs, ft_map, offsets):
     }
 
 
+def render_mqc(sample, res):
+    """Render a MultiQC custom-content table file (one data row for `sample`).
+
+    Files emitted by different accessions share the same `id`, so MultiQC merges
+    them into a single 'stLFR barcode integrity' table.
+    """
+    offsets = ";".join(str(o) for o in res.get("barcode_offsets", []))
+    gate = "PASS" if res.get("gate_pass") else "FAIL"
+    valid_pct = f"{res.get('valid_fraction', 0.0) * 100:.1f}"
+    lines = [
+        "# id: 'stlfr_barcode'",
+        "# section_name: 'stLFR barcode integrity'",
+        "# description: 'Fraction of read2 carrying a valid stLFR barcode "
+        "(1-mismatch tolerance) against the whitelist, with the detected barcode "
+        "offsets and the gate verdict.'",
+        "# plot_type: 'table'",
+        "# pconfig:",
+        "#     id: 'stlfr_barcode_table'",
+        "#     namespace: 'stLFR'",
+        "Sample\tValid barcode %\tValid reads\tTotal reads\tDistinct barcodes\tBarcode offsets\tR2 length\tGate",
+        f"{sample}\t{valid_pct}\t{res.get('n_valid')}\t{res.get('n_total')}\t"
+        f"{res.get('distinct_barcodes')}\t{offsets}\t{res.get('r2_len_mode')}\t{gate}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 # --- CLI -------------------------------------------------------------------
 
 def load_whitelist(path):
@@ -178,6 +204,8 @@ def main(argv=None):
     # still catches stripped/mislaid barcodes (which score near 0% or <10%).
     p.add_argument("--pass-fraction", type=float, default=0.80)
     p.add_argument("--out", default="barcode_check.json")
+    p.add_argument("--sample", default=None, help="sample name for the MultiQC row")
+    p.add_argument("--mqc", default=None, help="write a MultiQC custom-content table here")
     args = p.parse_args(argv)
 
     wl = load_whitelist(args.whitelist)
@@ -198,6 +226,11 @@ def main(argv=None):
 
     with open(args.out, "w") as fh:
         json.dump(res, fh, indent=2)
+
+    if args.mqc:
+        sample = args.sample or args.out.rsplit("/", 1)[-1].split(".")[0]
+        with open(args.mqc, "w") as fh:
+            fh.write(render_mqc(sample, res))
 
     verdict = "PASS" if res["gate_pass"] else "FAIL"
     print(f"[stLFR barcode check] {verdict}: "

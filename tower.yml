@@ -1,0 +1,6 @@
+# Seqera Platform reports: surface key workflow outputs in the run's Reports tab.
+# https://docs.seqera.io/platform-cloud/reports/overview
+reports:
+  multiqc_report.html:
+    display: "MultiQC report"
+    mimeType: "text/html"

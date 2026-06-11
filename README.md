@@ -9,7 +9,10 @@ assemblies.
 This first stage is **gate zero**: confirm the stLFR barcodes are intact in read2 of
 the deposited data (NCBI BioProject PRJNA1225167) before committing to reassembly.
 For each run accession it subsamples reads from ENA, summarises read structure with
-`seqkit`, and verifies barcode integrity against the BGI stLFR whitelist.
+`seqkit`, and verifies barcode integrity against the BGI stLFR whitelist. Results
+are aggregated into a single MultiQC report (seqkit read stats + a custom
+barcode-integrity table), surfaced in the Seqera Platform Reports tab via
+`tower.yml`.
 
 The barcode check (`modules/barcode_check/resources/usr/bin/stlfr_barcode_check.py`,
 a module-scoped binary) detects where the three 10 bp
@@ -34,8 +37,9 @@ nextflow run . \
     --pass_fraction 0.80
 ```
 
-`--accessions` takes a list; each accession is processed in parallel. Results are
-published per accession under `results/<accession>/`.
+`--accessions` takes a list; each accession is processed in parallel. Per-accession
+results (seqkit stats, barcode-check JSON) are published under `results/<accession>/`,
+and the aggregate `multiqc_report.html` at the `results/` root.
 
 ## Parameters
 
