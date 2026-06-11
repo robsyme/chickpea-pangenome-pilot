@@ -1,9 +1,8 @@
 nextflow.enable.types = true
-nextflow.enable.moduleBinaries = true
 
 include { FETCH_READS }    from './modules/fetch_reads.nf'
 include { READ_STRUCTURE } from './modules/read_structure.nf'
-include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
+include { BARCODE_CHECK }  from './modules/barcode_check.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
 include { SraRun ; Result } from './types.nf'
 

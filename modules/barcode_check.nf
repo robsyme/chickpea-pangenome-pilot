@@ -1,12 +1,15 @@
 nextflow.enable.types = true
 
-include { ReadPair ; Result } from '../../types.nf'
+include { ReadPair ; Result } from '../types.nf'
 
 // Gate zero: verify the stLFR barcodes are intact in read2. Detects the barcode
 // offsets empirically, then reports the fraction of reads carrying a valid
 // 3-barcode combination, the distinct-barcode count, and a reads-per-barcode
 // histogram. Emits both the JSON result and a MultiQC custom-content table row.
-// The check script is a module-scoped binary (resources/usr/bin, on PATH).
+// The check script lives in the pipeline bin/ (on PATH). NOTE: it is deliberately
+// NOT a module-scoped binary -- enabling nextflow.enable.moduleBinaries makes such
+// processes receive input paths without the Fusion /fusion/s3 mount prefix, which
+// breaks file access under Fusion.
 process BARCODE_CHECK {
     tag "${reads.accession}"
     conda 'conda-forge::python=3.12'
