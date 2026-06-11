@@ -26,7 +26,7 @@ params {
 workflow {
     main:
     runs = channel.fromList(params.accessions)
-        .map { acc -> new SraRun(accession: acc) }
+        .map { acc -> record(accession: acc) }
 
     n_reads   = channel.value(params.check_reads)
     whitelist = channel.value(file("${projectDir}/assets/stlfr_barcode_whitelist.txt"))
