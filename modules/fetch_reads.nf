@@ -32,12 +32,11 @@ process FETCH_READS {
     r1url=\$(echo "\$ftp" | cut -d';' -f1)
     r2url=\$(echo "\$ftp" | cut -d';' -f2)
 
-    # Stream, decompress, take the first ${n_lines} lines, recompress. \`head\`
-    # closing the pipe sends SIGPIPE upstream (expected), so the pipe exit status
-    # is unreliable -- we validate the read count of the OUTPUT instead. \`curl
-    # --fail\` turns HTTP errors into failures (not silent HTML), and --retry rides
-    # out transient ENA hiccups. A short/empty output is a hard failure, which the
-    # process errorStrategy then retries.
+    # Stream, decompress, take the first N lines, recompress. head closing the pipe
+    # sends SIGPIPE upstream (expected), so the pipe exit status is unreliable; we
+    # validate the read count of the OUTPUT instead. curl --fail makes HTTP errors
+    # fail loudly (not silent HTML) and --retry rides out transient ENA hiccups. A
+    # short or empty output is a hard failure, which the process errorStrategy retries.
     get_subset() {
         url="\$1"; out="\$2"
         curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "https://\${url}" \\
