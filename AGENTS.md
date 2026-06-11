@@ -237,6 +237,14 @@ Gotchas resolved this session (all real, all cost a run to find):
 - **`tw runs relaunch --pull-latest` keeps the original run's commit.** To resume onto
   newer code, pin `--commit-id $(git rev-parse HEAD)`; unchanged upstream tasks stay
   cached, only edited ones re-run.
+- **Do NOT enable `nextflow.enable.moduleBinaries` with typed records on Fusion.**
+  Confirmed Nextflow bug (26.04.x): with the flag on, a process input that is a
+  record `Path` field is not staged — it stays a raw `S3Path` rendered without the
+  `/fusion/s3` prefix → "No such file". Direct `Path` inputs are unaffected. The flag
+  alone triggers it (no module-binary process need exist). This is why BARCODE_CHECK
+  is a plain `bin/` process here, not a module binary. Filed as
+  https://github.com/nextflow-io/nextflow/issues/7225; minimal repro at
+  https://github.com/robsyme/nf-record-fusion-repro.
 
 ## Reference: local Nextflow source
 
