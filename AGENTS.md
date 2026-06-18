@@ -138,6 +138,17 @@ tw launch <pipeline-url-or-name> --compute-env aws-cloud-us-east-1 --wait SUBMIT
   workspace.
 - The Nextflow pipeline in this repo is the canonical record of the analysis — keep
   it runnable and keep parameter/version choices in code, not just prose.
+- **Prefer resuming over fresh launches.** We build the workflow iteratively, so by
+  default resume a prior run (`tw runs relaunch -i <runId> …`) rather than launching
+  fresh. This reuses completed tasks from the work-dir cache — especially the
+  expensive `FETCH_READS` downloads — so each iteration only re-runs what changed.
+  When the code changed, pin the new commit so resume sees it while keeping unchanged
+  upstream tasks cached:
+  `tw runs relaunch -i <runId> --revision main --commit-id $(git rev-parse HEAD)`
+  (`--pull-latest` alone keeps the original run's commit). Launch fresh only when you
+  deliberately want to invalidate the cache or start a clean lineage. Keep changes
+  cache-friendly: avoid edits that needlessly change a process's task hash (script,
+  inputs, container) when you don't intend to re-run it.
 
 ## Pipeline prerequisites and conventions
 

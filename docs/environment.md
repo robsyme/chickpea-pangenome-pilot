@@ -93,5 +93,7 @@ the recipe above), or add it to the Launchpad pre-run in the UI.
   `workflow-tasks.json`. (The dump currently 500s on the `nextflow.log` section.)
 - **Head-job Nextflow log** (incl. `dumpHashes` output): it is written to the work
   dir root as `s3://.../chickpea-pilot/work/nf-<runId>.log` — pull with `aws s3 cp`.
-- Resume onto newer code: `tw runs relaunch -i <runId> --revision main
-  --commit-id $(git rev-parse HEAD)` (`--pull-latest` alone keeps the original commit).
+- **Default practice: resume, don't relaunch fresh** (see AGENTS.md "Conventions") —
+  reuse cached tasks (esp. `FETCH_READS`) and build iteratively. Resume onto newer
+  code: `tw runs relaunch -i <runId> --revision main --commit-id $(git rev-parse HEAD)`
+  (`--pull-latest` alone keeps the original commit).
