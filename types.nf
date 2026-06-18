@@ -1,4 +1,4 @@
-// Shared record types for the gate-zero pipeline.
+// Shared record types.
 // Included by main.nf and the process modules.
 
 record SraRun {
@@ -13,31 +13,5 @@ record ReadPair {
 
 record Result {
     accession: String
-    file: Path
-}
-
-record ConvertedReads {
-    accession: String
-    dir: Path
-}
-
-record AssemblyJob {
-    accession: String
-    dir: Path
-    coverage: Integer
-}
-
-record Assembly {
-    accession: String
-    assembler: String
-    coverage: Integer
-    fasta: Path
-    summary: Path
-}
-
-record AssemblyStats {
-    accession: String
-    assembler: String
-    coverage: Integer
     file: Path
 }

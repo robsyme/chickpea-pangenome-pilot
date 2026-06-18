@@ -1,43 +1,24 @@
 nextflow.enable.types = true
 nextflow.enable.moduleBinaries = true
 
-include { FETCH_READS }    from './modules/fetch_reads.nf'
+include { FETCH_READS }      from './modules/fetch_reads.nf'
 include { FETCH_FULL_READS } from './modules/fetch_full_reads.nf'
-include { STLFR_CONVERT } from './modules/stlfr_convert.nf'
-include { READ_STRUCTURE } from './modules/read_structure.nf'
-include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
-include { MULTIQC }        from './modules/multiqc.nf'
-include { SUPERNOVA }      from './modules/supernova.nf'
-include { ASSEMBLY_STATS } from './modules/assembly_stats/main.nf'
-include { SraRun ; Result ; Assembly ; AssemblyStats } from './types.nf'
+include { READ_STRUCTURE }   from './modules/read_structure.nf'
+include { BARCODE_CHECK }    from './modules/barcode_check/main.nf'
+include { MULTIQC }          from './modules/multiqc.nf'
+include { SraRun ; Result } from './types.nf'
 
-// Gate-zero pipeline: for each SRA/ENA run accession, subsample reads, summarise
-// read structure, and verify stLFR barcode integrity in read2. Designed to take
-// many accessions and parallelize per accession.
+// Gate-zero pipeline plus the open-stack assembly baseline (added in later tasks).
 params {
-    // Run accessions to check (one element per accession; parallelized).
-    // The pilot uses TWO accessions on purpose so combination/aggregation steps
-    // (MULTIQC now; cross-sample merges later) are always exercised and the pipeline
-    // can't silently fail to scale beyond one sample. CBA Captain + Neelam.
+    // Run accessions (one element per accession; parallelized). Two on purpose so
+    // aggregation steps stay exercised. CBA Captain + Neelam.
     accessions: List<String> = ['SRR32381426', 'SRR32381425']
 
-    // Read pairs to subsample per accession for the check.
+    // Read pairs to subsample per accession for the gate-zero check.
     check_reads: Integer = 2000000
 
-    // Minimum fraction of reads that must carry a valid barcode for the gate to
-    // pass. A healthy stLFR library recovers ~85-90%; broken/stripped barcodes
-    // score near 0-10%.
+    // Minimum fraction of reads carrying a valid barcode for the gate to pass.
     pass_fraction: Float = 0.80
-
-    // Private image carrying stlfr2supernova (+ SOAPfilter). Override on the
-    // Launchpad once built/pushed; placeholder keeps the repo portable.
-    stlfr2supernova_image: String = 'PLACEHOLDER/stlfr2supernova:0.1'
-
-    // Stage 1 coverage variants and genome size for --maxreads sizing.
-    genome_size: Integer = 740_000_000          // Cicer arietinum ~740 Mb
-    coverage_cutoffs: List<Integer> = [220, 56] // faithful + best-practice
-    // Private image with Supernova 2.1.1 baked in. Override on the Launchpad.
-    supernova_image: String = 'PLACEHOLDER/supernova:2.1.1'
 }
 
 workflow {
@@ -54,23 +35,12 @@ workflow {
         params.pass_fraction as Float
     )
 
-    // --- Stage 1: baseline Supernova assembly --------------------------------
+    // --- Stage 1 (open-stack baseline): full reads fetched here; assembly added next.
     full = FETCH_FULL_READS(runs)
-    converted = STLFR_CONVERT(full)
-    cutoffs    = channel.fromList(params.coverage_cutoffs)
-    jobs       = converted.combine(cutoffs).map { conv, cov ->
-        record(accession: conv.accession, dir: conv.dir, coverage: cov)
-    }
-    assemblies = SUPERNOVA(jobs, params.genome_size)
-    asm_stats = ASSEMBLY_STATS(assemblies)
 
-    // Gather all per-accession QC into one MultiQC report: seqkit read-structure
-    // stats (native module), the barcode-integrity custom-content tables, and the
-    // per-assembly contiguity tables.
     qc_files = structure
         .map { r -> r.file }
         .mix(barcode.mqc)
-        .mix(asm_stats.mqc)
         .collect()
     report = MULTIQC(qc_files, channel.value('stLFR gate-zero'))
 
@@ -78,8 +48,6 @@ workflow {
     read_structure = structure
     barcode_check  = barcode.res
     multiqc_report = report.report
-    assembly       = assemblies
-    assembly_stats = asm_stats.res
 }
 
 output {
@@ -91,11 +59,5 @@ output {
     }
     multiqc_report: Path {
         path '.'
-    }
-    assembly: Channel<Assembly> {
-        path { a -> "assemblies/${a.accession}/${a.assembler}-${a.coverage}x" }
-    }
-    assembly_stats: Channel<AssemblyStats> {
-        path { s -> "assemblies/${s.accession}/${s.assembler}-${s.coverage}x" }
     }
 }
