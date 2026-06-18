@@ -3,6 +3,7 @@ nextflow.enable.moduleBinaries = true
 
 include { FETCH_READS }    from './modules/fetch_reads.nf'
 include { FETCH_FULL_READS } from './modules/fetch_full_reads.nf'
+include { STLFR_CONVERT } from './modules/stlfr_convert.nf'
 include { READ_STRUCTURE } from './modules/read_structure.nf'
 include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
@@ -25,6 +26,10 @@ params {
     // pass. A healthy stLFR library recovers ~85-90%; broken/stripped barcodes
     // score near 0-10%.
     pass_fraction: Float = 0.80
+
+    // Private image carrying stlfr2supernova (+ SOAPfilter). Override on the
+    // Launchpad once built/pushed; placeholder keeps the repo portable.
+    stlfr2supernova_image: String = 'PLACEHOLDER/stlfr2supernova:0.1'
 }
 
 workflow {
@@ -51,6 +56,7 @@ workflow {
 
     // --- Stage 1: baseline Supernova assembly --------------------------------
     full = FETCH_FULL_READS(runs)
+    converted = STLFR_CONVERT(full)
 
     publish:
     read_structure = structure
