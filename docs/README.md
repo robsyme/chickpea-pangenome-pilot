@@ -26,4 +26,8 @@ gotchas live in `AGENTS.md`.
 - `2026-06-18-stage1b-abyss-contigs-design.md` — Stage 1 redesign: drop Supernova for
   a fully-open, stLFR-native baseline (LRTK → ABySS contigs, k-sweep), with the
   reference-free scaffolding chain (Tigmint → ARKS → LINKS → stLFR_GapCloser)
-  sketched for the next build.
+  sketched for the next build. Task-by-task plan in
+  `plans/2026-06-18-stage1b-abyss-contigs.md`.
+- `2026-06-18-stage1b-abyss-contigs-build.md` — Open ABySS contigs baseline built and
+  stub-validated end to end (LRTK barcode-prep, ABySS k-sweep, MultiQC merge), all
+  Bioconda — no private image. Awaiting a smoke run to finalise the LRTK CLI and pick k.

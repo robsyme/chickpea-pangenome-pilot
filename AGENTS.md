@@ -64,12 +64,13 @@ those paths honest while staying cheap. Planned stages:
    barcode is intact in read2. Everything downstream depends on this. The ~242 bp
    combined paired-read length suggests read2 still carries the barcode block, but
    it must be verified on real data before committing.
-2. **Baseline.** Reproduce the authors' route (`stlfr2supernova` → Supernova
-   v2.1.1) to get a comparable baseline. stLFR coverage here is ~220×, which
-   over-saturates linked-read assemblers (Supernova targets ~56×), so subsample.
-   *Built and stub-validated 2026-06-18 (runs both 220× and 56× per accession);
-   awaiting the private Supernova image for the first real run. See the Stage 1
-   section below and `docs/2026-06-18-stage1-baseline-assembly-build.md`.*
+2. **Baseline.** Originally aimed to reproduce the authors' route
+   (`stlfr2supernova` → Supernova v2.1.1). Supernova turned out to be a delisted
+   proprietary product with no usable download, so the baseline pivoted to a
+   fully-open, stLFR-native stack: LRTK barcode-prep → ABySS contigs (k-sweep).
+   *Built and stub-validated 2026-06-18; awaiting a smoke run. See the Stage 1
+   section below and `docs/2026-06-18-stage1b-abyss-contigs-build.md`.* stLFR
+   coverage is ~220× (high, but fine for ABySS de Bruijn assembly).
 3. **Reference-free assembly + non-reference scaffolding.** Barcode-aware
    assembly/scaffolding (e.g. ARCS/ARKS+LINKS, SLR-superscaffolder, cloudSPAdes)
    that does not use CDC Frontier for ordering.
@@ -279,41 +280,49 @@ Gotchas resolved this session (all real, all cost a run to find):
   ASSEMBLY_STATS are module-scoped binaries under `resources/usr/bin/`. The manifest
   pins `>=26.04.4` precisely because of this.
 
-## Stage 1 (baseline assembly): built, awaiting Supernova image
+## Stage 1 (baseline assembly): open ABySS contigs, stub-validated
+
+Supernova was dropped (delisted proprietary product, no usable download — see
+`docs/2026-06-18-stage1b-abyss-contigs-design.md`). The baseline is now a fully-open,
+Bioconda-packaged, stLFR-native stack that also doubles as the reference-free route.
 
 The assembly subgraph extends `main.nf` without touching the gate-zero processes, so
-their cache survives. Shape: `FETCH_FULL_READS → STLFR_CONVERT →
-SUPERNOVA(converted.combine(cutoffs)) → ASSEMBLY_STATS`, then MultiQC aggregates the
-per-assembly contiguity tables alongside the gate-zero QC. Convert runs once per
-accession; one parameterised `SUPERNOVA` fans out over `(accession × coverage)`.
-`assembler` + `coverage` ride inside the typed records to the published path
-`assemblies/<accession>/<assembler>-<coverage>x/`, so the variants never collide.
+their cache survives. Shape: `FETCH_FULL_READS → LRTK_CONVERT →
+ABYSS(converted.combine(abyss_kmers)) → ASSEMBLY_STATS`, then MultiQC aggregates the
+per-assembly contiguity tables alongside the gate-zero QC. LRTK barcode extraction runs
+once per accession; one parameterised `ABYSS` fans out over the k-sweep. The `assembler`
+string (`abyss-k64`) rides inside the typed records to the published path
+`assemblies/<accession>/<assembler>/`, so the variants never collide and scaffolder
+variants (`abyss-k64-arks`, …) slot in later.
+
+Every process uses a Bioconda `conda` directive (lrtk, abyss, seqkit) — no private
+image, no EULA. That removed the entire Supernova blocker.
 
 New params (in `main.nf`):
-- `genome_size` (default 740_000_000) — sizes `--maxreads = genome_size*coverage/read_len`.
-- `coverage_cutoffs` (default `[220, 56]`) — drives the fan-out. 220× reproduces the
-  paper's default-parameters (over-saturated) run; 56× is Supernova's recommended raw
-  coverage. Running both tests whether over-saturation degraded the published assembly.
-- `supernova_image` / `stlfr2supernova_image` — placeholder image refs; override on
-  the Launchpad with the pinned private-image digests once built.
+- `abyss_kmers` (default `[64, 80, 96]`) — drives the k-sweep fan-out. k must be < the
+  100 bp read length (so 128 is not valid here).
+- `abyss_bloom` (default `'20G'`) — ABySS Bloom-filter size; tune at smoke for the
+  realised k-mer count.
 
 Local validation: `NXF_SYNTAX_PARSER=v2 nextflow run . -stub -profile stub_local`. The
-`stub_local` profile caps SUPERNOVA's production request (16 CPU / 250 GB) so the full
-DAG fits a dev machine; production runs use no profile. Stub-green is `completed=19`.
+`stub_local` profile caps ABYSS's production request (16 CPU / 64 GB) so the full DAG
+fits a dev machine; production runs use no profile. Stub-green is `completed=23`.
 
 Gotchas / open items:
 - **Typed params aren't visible inside modules.** A module reading `params.x` (e.g.
-  `container params.supernova_image`) logs `WARN: Access to undefined parameter` under
-  the v2 typed-params preview; the value still resolves at runtime. Harmless noise, but
-  it means a real run is the first place the container ref is actually exercised.
-- **Two `TODO(smoke)` script bodies** need the real tools to finalise: the
-  conversion-only call in STLFR_CONVERT, and the mkoutput output-filename handling in
-  SUPERNOVA. `SUPERNOVA --localmem` is floored at 1 so a reduced-memory run never
-  passes a negative value.
-- **First real run prerequisites:** build the private image (Supernova tarball from the
-  10x portal under EULA, plus stlfr2supernova), set the two image params, confirm
-  `genome_size` against CDC Frontier v2.0, and decide Spot vs on-demand for the ~1-day
-  SUPERNOVA task (Fusion Snapshots already help with reclamation).
+  `B=${params.abyss_bloom}` in ABYSS) logs `WARN: Access to undefined parameter` under
+  the v2 typed-params preview; the value still resolves at runtime. Harmless noise.
+- **One `TODO(smoke)` script body:** the exact `lrtk FQCONVER` flags (and whether a
+  whitelist arg is needed) need confirming on a read subset — LRTK is the least-proven
+  tool. Also confirm the `abyss-pe` contigs output filename and tune `abyss_bloom`.
+- **Baseline anchoring:** there is no same-input Supernova run; compare the ABySS contig
+  N50 per k to the paper's published Supernova contig N50 (17–34 kb).
+- **First real run prerequisites:** none beyond the smoke checks above — no private image
+  needed. Relaunch pinned to the branch commit so gate zero + the full fetch stay cached.
+
+Next stage (designed, not built): reference-free scaffolding —
+`TIGMINT → ARKS → LINKS → stLFR_GapCloser` — reusing the LRTK BX-tagged reads and the
+ABySS contigs. `stLFR_GapCloser` is the only non-Bioconda tool (DIY container then).
 
 ## Reference: local Nextflow source
 
