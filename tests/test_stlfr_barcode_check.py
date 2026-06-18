@@ -6,7 +6,9 @@ import importlib.util
 import pathlib
 import unittest
 
-_BIN = pathlib.Path(__file__).resolve().parent.parent / "bin" / "stlfr_barcode_check.py"
+_BIN = (pathlib.Path(__file__).resolve().parent.parent
+        / "modules" / "barcode_check" / "resources" / "usr" / "bin"
+        / "stlfr_barcode_check.py")
 _spec = importlib.util.spec_from_file_location("sbc", _BIN)
 sbc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(sbc)
