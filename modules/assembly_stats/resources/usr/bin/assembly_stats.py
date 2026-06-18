@@ -8,11 +8,7 @@ import argparse
 
 
 def parse_seqkit(text):
-    """Parse `seqkit stats -a -T` text into the fields we report.
-
-    Indexed by column NAME, not position, so seqkit version differences in
-    column order do not break parsing. Returns ints (0 if a column is absent).
-    """
+    """Parse `seqkit stats -a -T` text into the fields we report (by column name)."""
     lines = [ln for ln in text.splitlines() if ln.strip()]
     if len(lines) < 2:
         raise ValueError("seqkit stats output has no data row")
@@ -40,26 +36,26 @@ def pct_n(sum_gap, sum_len):
     return round(100.0 * sum_gap / sum_len, 3)
 
 
-def render_stats(accession, assembler, coverage, m):
+def render_stats(accession, assembler, m):
     """Tidy machine-readable one-row TSV with identity + metrics."""
-    header = ["accession", "assembler", "coverage", "num_scaffolds",
+    header = ["accession", "assembler", "num_scaffolds",
               "total_length", "n50", "n_bases", "pct_n"]
-    row = [accession, assembler, str(coverage),
+    row = [accession, assembler,
            str(m["num_seqs"]), str(m["sum_len"]), str(m["n50"]),
            str(m["sum_gap"]), str(pct_n(m["sum_gap"], m["sum_len"]))]
     return "\t".join(header) + "\n" + "\t".join(row) + "\n"
 
 
-def render_mqc(accession, assembler, coverage, m):
-    """MultiQC custom-content table row for one strategy."""
-    sample = f"{accession}-{assembler}-{coverage}x"
+def render_mqc(accession, assembler, m):
+    """MultiQC custom-content table row for one assembly variant."""
+    sample = f"{accession}-{assembler}"
     lines = [
         "# id: 'assembly_stats'",
         "# section_name: 'Assembly stats'",
         "# plot_type: 'table'",
-        "\t".join(["Sample", "Assembler", "Coverage", "Scaffolds",
+        "\t".join(["Sample", "Assembler", "Scaffolds",
                    "Total length (bp)", "N50 (bp)", "N (%)"]),
-        "\t".join([sample, assembler, f"{coverage}x",
+        "\t".join([sample, assembler,
                    str(m["num_seqs"]), str(m["sum_len"]),
                    str(m["n50"]), str(pct_n(m["sum_gap"], m["sum_len"]))]),
     ]
@@ -68,10 +64,9 @@ def render_mqc(accession, assembler, coverage, m):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--seqkit", required=True, help="seqkit stats -a -T TSV")
+    p.add_argument("--seqkit", required=True)
     p.add_argument("--accession", required=True)
     p.add_argument("--assembler", required=True)
-    p.add_argument("--coverage", required=True, type=int)
     p.add_argument("--out", required=True)
     p.add_argument("--mqc", required=True)
     args = p.parse_args(argv)
@@ -79,9 +74,9 @@ def main(argv=None):
     with open(args.seqkit) as fh:
         m = parse_seqkit(fh.read())
     with open(args.out, "w") as fh:
-        fh.write(render_stats(args.accession, args.assembler, args.coverage, m))
+        fh.write(render_stats(args.accession, args.assembler, m))
     with open(args.mqc, "w") as fh:
-        fh.write(render_mqc(args.accession, args.assembler, args.coverage, m))
+        fh.write(render_mqc(args.accession, args.assembler, m))
 
 
 if __name__ == "__main__":

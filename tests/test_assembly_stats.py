@@ -14,7 +14,6 @@ _spec = importlib.util.spec_from_file_location("asm", _BIN)
 asm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(asm)
 
-# A representative `seqkit stats -a -T` row for a FASTA (quality cols are '0').
 SEQKIT = (
     "file\tformat\ttype\tnum_seqs\tsum_len\tmin_len\tavg_len\tmax_len\t"
     "Q1\tQ2\tQ3\tsum_gap\tN50\tN50_num\tQ20(%)\tQ30(%)\tAvgQual\tGC(%)\n"
@@ -51,27 +50,32 @@ class TestPctN(unittest.TestCase):
 class TestRenderMqc(unittest.TestCase):
     def setUp(self):
         self.m = asm.parse_seqkit(SEQKIT)
-        self.out = asm.render_mqc("SRR32381426", "supernova", 56, self.m)
+        self.out = asm.render_mqc("SRR32381426", "abyss-k64", self.m)
 
     def test_has_custom_content_config_header(self):
         self.assertIn("# plot_type: 'table'", self.out)
         self.assertIn("# id: 'assembly_stats'", self.out)
 
-    def test_row_keyed_by_strategy_sample(self):
-        self.assertIn("SRR32381426-supernova-56x", self.out)
+    def test_row_keyed_by_assembler_sample(self):
+        self.assertIn("SRR32381426-abyss-k64", self.out)
         self.assertIn("23000", self.out)
+
+    def test_no_coverage_column(self):
+        self.assertNotIn("Coverage", self.out)
 
 
 class TestRenderStats(unittest.TestCase):
     def test_tsv_has_identity_and_metrics(self):
         m = asm.parse_seqkit(SEQKIT)
-        out = asm.render_stats("SRR32381426", "supernova", 220, m)
+        out = asm.render_stats("SRR32381426", "abyss-k64", m)
         lines = out.strip().splitlines()
-        self.assertEqual(lines[0].split("\t")[0], "accession")
+        header = lines[0].split("\t")
         row = lines[1].split("\t")
+        self.assertEqual(header[0], "accession")
+        self.assertNotIn("coverage", header)
         self.assertEqual(row[0], "SRR32381426")
-        self.assertEqual(row[2], "220")
-        self.assertEqual(row[5], "23000")  # n50 column
+        self.assertEqual(row[1], "abyss-k64")
+        self.assertEqual(row[header.index("n50")], "23000")
 
 
 if __name__ == "__main__":
