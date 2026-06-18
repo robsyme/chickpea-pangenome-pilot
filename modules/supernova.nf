@@ -45,7 +45,10 @@ process SUPERNOVA {
     maxreads=\$(awk -v g=${genome_size} -v c=${cov} -v l=\$read_len 'BEGIN{printf "%d", (g*c)/l}')
     echo "[SUPERNOVA] ${acc} target=${cov}x read_len=\$read_len maxreads=\$maxreads" >&2
 
+    # Leave ~6 GB headroom for the JVM/OS below the instance's memory request.
     localmem=\$(( ${task.memory.toGiga()} - 6 ))
+    # Floor it so a reduced-memory invocation never passes Supernova a negative value.
+    [ "\$localmem" -lt 1 ] && localmem=1
 
     supernova run \\
         --id=${id} \\
