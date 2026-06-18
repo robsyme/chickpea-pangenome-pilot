@@ -62,7 +62,8 @@ Reading S3 from a laptop needs a valid AWS SSO token (`aws sso login` if expired
 ## Launchpad pipeline
 
 `chickpea-gate-zero` — repo `https://github.com/robsyme/chickpea-pangenome-pilot`,
-CE `aws-batch-default`. Config: `outputDir` (S3 results) + `dumpHashes`. The
+CE `aws-batch-default`. Config: `outputDir` (S3 results) + `dumpHashes`. Its
+**pre-run script** exports `NXF_VER=26.04.4` and `NXF_SYNTAX_PARSER=v2`. The
 **"Enable Nextflow syntax parser v2" toggle is ON** (UI-only; the `tw` CLI does not
 expose it, and a CLI `tw pipelines update` will silently turn it off — edit this
 pipeline's config in the UI). Launch by name:
@@ -75,16 +76,19 @@ tw launch chickpea-gate-zero --name <run-name>
 ## Nextflow version
 
 The pipeline requires **≥ 26.04.4** (fix for nextflow-io/nextflow#7226). The CE
-otherwise provisions 26.04.3, so pin the version. Per-launch pin via a pre-run
-script:
+otherwise provisions 26.04.3, so the version is pinned.
+
+**Durable pin (in place):** the `chickpea-gate-zero` Launchpad pipeline's **pre-run
+script** exports both `NXF_VER=26.04.4` and `NXF_SYNTAX_PARSER=v2`, so
+`tw launch chickpea-gate-zero` (and resumes of its runs) use 26.04.4 automatically.
+
+For **ad-hoc** `tw launch <git-url>` runs that bypass the Launchpad pipeline, pass
+the same pre-run explicitly:
 
 ```bash
 printf 'export NXF_VER=26.04.4\nexport NXF_SYNTAX_PARSER=v2\n' > prerun.sh
-tw launch <pipeline-or-url> --compute-env aws-batch-default --pre-run prerun.sh ...
+tw launch <git-url> --compute-env aws-batch-default --pre-run prerun.sh ...
 ```
-
-Durable options (TODO — pick one): add `NXF_VER=26.04.4` to the CE env (rebuild via
-the recipe above), or add it to the Launchpad pre-run in the UI.
 
 ## Useful operations
 
