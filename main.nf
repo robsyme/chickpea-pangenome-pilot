@@ -7,8 +7,9 @@ include { READ_STRUCTURE }   from './modules/read_structure.nf'
 include { BARCODE_CHECK }    from './modules/barcode_check/main.nf'
 include { LRTK_CONVERT }     from './modules/lrtk_convert.nf'
 include { ABYSS }            from './modules/abyss.nf'
+include { ASSEMBLY_STATS }   from './modules/assembly_stats/main.nf'
 include { MULTIQC }          from './modules/multiqc.nf'
-include { SraRun ; Result } from './types.nf'
+include { SraRun ; Result ; Assembly ; AssemblyStats } from './types.nf'
 
 // Gate-zero pipeline plus the open-stack assembly baseline (added in later tasks).
 params {
@@ -51,10 +52,12 @@ workflow {
         record(accession: conv.accession, r1: conv.r1, r2: conv.r2, k: k)
     }
     contigs = ABYSS(jobs)
+    asm_stats = ASSEMBLY_STATS(contigs)
 
     qc_files = structure
         .map { r -> r.file }
         .mix(barcode.mqc)
+        .mix(asm_stats.mqc)
         .collect()
     report = MULTIQC(qc_files, channel.value('stLFR gate-zero'))
 
@@ -62,6 +65,8 @@ workflow {
     read_structure = structure
     barcode_check  = barcode.res
     multiqc_report = report.report
+    assembly       = contigs
+    assembly_stats = asm_stats.res
 }
 
 output {
@@ -73,5 +78,11 @@ output {
     }
     multiqc_report: Path {
         path '.'
+    }
+    assembly: Channel<Assembly> {
+        path { a -> "assemblies/${a.accession}/${a.assembler}" }
+    }
+    assembly_stats: Channel<AssemblyStats> {
+        path { s -> "assemblies/${s.accession}/${s.assembler}" }
     }
 }

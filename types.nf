@@ -34,3 +34,9 @@ record Assembly {
     assembler: String         // 'abyss-k64' — encodes the full variant
     fasta: Path
 }
+
+record AssemblyStats {
+    accession: String
+    assembler: String
+    file: Path
+}
