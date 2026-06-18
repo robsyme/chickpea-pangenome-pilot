@@ -7,6 +7,7 @@ include { STLFR_CONVERT } from './modules/stlfr_convert.nf'
 include { READ_STRUCTURE } from './modules/read_structure.nf'
 include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
+include { SUPERNOVA }      from './modules/supernova.nf'
 include { SraRun ; Result } from './types.nf'
 
 // Gate-zero pipeline: for each SRA/ENA run accession, subsample reads, summarise
@@ -30,6 +31,12 @@ params {
     // Private image carrying stlfr2supernova (+ SOAPfilter). Override on the
     // Launchpad once built/pushed; placeholder keeps the repo portable.
     stlfr2supernova_image: String = 'PLACEHOLDER/stlfr2supernova:0.1'
+
+    // Stage 1 coverage variants and genome size for --maxreads sizing.
+    genome_size: Integer = 740_000_000          // Cicer arietinum ~740 Mb
+    coverage_cutoffs: List<Integer> = [220, 56] // faithful + best-practice
+    // Private image with Supernova 2.1.1 baked in. Override on the Launchpad.
+    supernova_image: String = 'PLACEHOLDER/supernova:2.1.1'
 }
 
 workflow {
@@ -57,6 +64,11 @@ workflow {
     // --- Stage 1: baseline Supernova assembly --------------------------------
     full = FETCH_FULL_READS(runs)
     converted = STLFR_CONVERT(full)
+    cutoffs    = channel.fromList(params.coverage_cutoffs)
+    jobs       = converted.combine(cutoffs).map { conv, cov ->
+        record(accession: conv.accession, dir: conv.dir, coverage: cov)
+    }
+    assemblies = SUPERNOVA(jobs, params.genome_size)
 
     publish:
     read_structure = structure
