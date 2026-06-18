@@ -268,7 +268,7 @@ Then make it executable: `chmod +x modules/assembly_stats/resources/usr/bin/asse
 **Step 4: Run tests to verify they pass**
 
 Run: `python3 -m unittest tests.test_assembly_stats -v`
-Expected: `Ran 9 tests`, `OK`.
+Expected: `Ran 8 tests`, `OK`.
 
 **Step 5: Commit**
 
@@ -830,7 +830,7 @@ stats TSV.
 **Step 3: Run all unit tests**
 
 Run: `python3 -m unittest discover -s tests -v`
-Expected: `Ran 20 tests` (11 barcode-check + 9 assembly-stats), `OK`.
+Expected: `Ran 19 tests` (11 barcode-check + 8 assembly-stats), `OK`.
 
 **Step 4: Commit (if anything changed; otherwise skip)**
 

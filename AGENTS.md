@@ -67,6 +67,9 @@ those paths honest while staying cheap. Planned stages:
 2. **Baseline.** Reproduce the authors' route (`stlfr2supernova` → Supernova
    v2.1.1) to get a comparable baseline. stLFR coverage here is ~220×, which
    over-saturates linked-read assemblers (Supernova targets ~56×), so subsample.
+   *Built and stub-validated 2026-06-18 (runs both 220× and 56× per accession);
+   awaiting the private Supernova image for the first real run. See the Stage 1
+   section below and `docs/2026-06-18-stage1-baseline-assembly-build.md`.*
 3. **Reference-free assembly + non-reference scaffolding.** Barcode-aware
    assembly/scaffolding (e.g. ARCS/ARKS+LINKS, SLR-superscaffolder, cloudSPAdes)
    that does not use CDC Frontier for ordering.
@@ -266,14 +269,51 @@ Gotchas resolved this session (all real, all cost a run to find):
 - **`tw runs relaunch --pull-latest` keeps the original run's commit.** To resume onto
   newer code, pin `--commit-id $(git rev-parse HEAD)`; unchanged upstream tasks stay
   cached, only edited ones re-run.
-- **Do NOT enable `nextflow.enable.moduleBinaries` with typed records on Fusion.**
-  Confirmed Nextflow bug (26.04.x): with the flag on, a process input that is a
-  record `Path` field is not staged — it stays a raw `S3Path` rendered without the
-  `/fusion/s3` prefix → "No such file". Direct `Path` inputs are unaffected. The flag
-  alone triggers it (no module-binary process need exist). This is why BARCODE_CHECK
-  is a plain `bin/` process here, not a module binary. Filed as
-  https://github.com/nextflow-io/nextflow/issues/7225; minimal repro at
-  https://github.com/robsyme/nf-record-fusion-repro.
+- **`nextflow.enable.moduleBinaries` + typed records on Fusion: fixed in 26.04.4.**
+  Earlier 26.04.x had a bug where, with the flag on, a process input that is a record
+  `Path` field was not staged — it stayed a raw `S3Path` rendered without the
+  `/fusion/s3` prefix → "No such file" (direct `Path` inputs were unaffected; the flag
+  alone triggered it). Filed as https://github.com/nextflow-io/nextflow/issues/7225,
+  minimal repro at https://github.com/robsyme/nf-record-fusion-repro. Fixed by #7226
+  in 26.04.4, so the flag is now on (`main.nf`) and both BARCODE_CHECK and
+  ASSEMBLY_STATS are module-scoped binaries under `resources/usr/bin/`. The manifest
+  pins `>=26.04.4` precisely because of this.
+
+## Stage 1 (baseline assembly): built, awaiting Supernova image
+
+The assembly subgraph extends `main.nf` without touching the gate-zero processes, so
+their cache survives. Shape: `FETCH_FULL_READS → STLFR_CONVERT →
+SUPERNOVA(converted.combine(cutoffs)) → ASSEMBLY_STATS`, then MultiQC aggregates the
+per-assembly contiguity tables alongside the gate-zero QC. Convert runs once per
+accession; one parameterised `SUPERNOVA` fans out over `(accession × coverage)`.
+`assembler` + `coverage` ride inside the typed records to the published path
+`assemblies/<accession>/<assembler>-<coverage>x/`, so the variants never collide.
+
+New params (in `main.nf`):
+- `genome_size` (default 740_000_000) — sizes `--maxreads = genome_size*coverage/read_len`.
+- `coverage_cutoffs` (default `[220, 56]`) — drives the fan-out. 220× reproduces the
+  paper's default-parameters (over-saturated) run; 56× is Supernova's recommended raw
+  coverage. Running both tests whether over-saturation degraded the published assembly.
+- `supernova_image` / `stlfr2supernova_image` — placeholder image refs; override on
+  the Launchpad with the pinned private-image digests once built.
+
+Local validation: `NXF_SYNTAX_PARSER=v2 nextflow run . -stub -profile stub_local`. The
+`stub_local` profile caps SUPERNOVA's production request (16 CPU / 250 GB) so the full
+DAG fits a dev machine; production runs use no profile. Stub-green is `completed=19`.
+
+Gotchas / open items:
+- **Typed params aren't visible inside modules.** A module reading `params.x` (e.g.
+  `container params.supernova_image`) logs `WARN: Access to undefined parameter` under
+  the v2 typed-params preview; the value still resolves at runtime. Harmless noise, but
+  it means a real run is the first place the container ref is actually exercised.
+- **Two `TODO(smoke)` script bodies** need the real tools to finalise: the
+  conversion-only call in STLFR_CONVERT, and the mkoutput output-filename handling in
+  SUPERNOVA. `SUPERNOVA --localmem` is floored at 1 so a reduced-memory run never
+  passes a negative value.
+- **First real run prerequisites:** build the private image (Supernova tarball from the
+  10x portal under EULA, plus stlfr2supernova), set the two image params, confirm
+  `genome_size` against CDC Frontier v2.0, and decide Spot vs on-demand for the ~1-day
+  SUPERNOVA task (Fusion Snapshots already help with reclamation).
 
 ## Reference: local Nextflow source
 

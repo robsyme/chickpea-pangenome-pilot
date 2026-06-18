@@ -18,4 +18,7 @@ gotchas live in `AGENTS.md`.
 - `2026-06-18-stage1-baseline-assembly-design.md` — Design for Stage 1: same-input
   Supernova baseline (`stlfr2supernova` → Supernova v2.1.1), two coverage variants
   (220× faithful + 56× best-practice) per accession, extending the gate-zero
-  pipeline.
+  pipeline. Task-by-task plan in `plans/2026-06-18-stage1-baseline-assembly.md`.
+- `2026-06-18-stage1-baseline-assembly-build.md` — Stage 1 built and stub-validated
+  end to end (the four assembly processes, the coverage fan-out, MultiQC merge).
+  Awaiting the private Supernova image for the first real run.
