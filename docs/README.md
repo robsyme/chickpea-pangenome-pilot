@@ -15,3 +15,7 @@ gotchas live in `AGENTS.md`.
 - `2026-06-17-nextflow-record-bug-and-module-binaries.md` — A Nextflow typed-record
   staging bug surfaced, was filed and fixed upstream (26.04.4); module binaries
   re-adopted once the fix shipped.
+- `2026-06-18-stage1-baseline-assembly-design.md` — Design for Stage 1: same-input
+  Supernova baseline (`stlfr2supernova` → Supernova v2.1.1), two coverage variants
+  (220× faithful + 56× best-practice) per accession, extending the gate-zero
+  pipeline.
