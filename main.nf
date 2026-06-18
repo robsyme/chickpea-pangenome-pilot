@@ -8,6 +8,7 @@ include { READ_STRUCTURE } from './modules/read_structure.nf'
 include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
 include { SUPERNOVA }      from './modules/supernova.nf'
+include { ASSEMBLY_STATS } from './modules/assembly_stats/main.nf'
 include { SraRun ; Result } from './types.nf'
 
 // Gate-zero pipeline: for each SRA/ENA run accession, subsample reads, summarise
@@ -69,6 +70,7 @@ workflow {
         record(accession: conv.accession, dir: conv.dir, coverage: cov)
     }
     assemblies = SUPERNOVA(jobs, params.genome_size)
+    asm_stats = ASSEMBLY_STATS(assemblies)
 
     publish:
     read_structure = structure
