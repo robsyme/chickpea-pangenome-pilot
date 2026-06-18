@@ -34,8 +34,11 @@ results come in; changes are recorded in the progress journal below.
 3. **QC + artefact quantification** (BUSCO, k-mer QV, misassembly detection; suppressed
    SVs; fragmentation-driven false gene absences).
 
-Pilot on a **single cultivar** (CBA Captain, `SRR32381426`) first; scale to all 15 only
-if the pilot demonstrates clear artefacts and recovered SVs.
+Pilot on a **small number of cultivars** — currently **two** (CBA Captain
+`SRR32381426` + Neelam `SRR32381425`) — before scaling to all 15. Two on purpose:
+it keeps the pilot cheap while ensuring every combination/aggregation step is
+exercised, so the pipeline can't silently fail to scale past one sample. We scale to
+15 only if the pilot demonstrates clear artefacts and recovered SVs.
 
 ## What's in this repo
 
@@ -52,7 +55,8 @@ if the pilot demonstrates clear artefacts and recovered SVs.
 
 ```bash
 export NXF_SYNTAX_PARSER=v2
-nextflow run . --accessions SRR32381426 --check_reads 2000000 --pass_fraction 0.80
+# defaults to two accessions (SRR32381426, SRR32381425); override with --accessions
+nextflow run . --check_reads 2000000 --pass_fraction 0.80
 ```
 
 Requires Nextflow ≥ 26.04.4 and the strict v2 parser (`NXF_SYNTAX_PARSER=v2`). On

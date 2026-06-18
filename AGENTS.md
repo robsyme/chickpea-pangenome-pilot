@@ -54,8 +54,11 @@ not "more contiguous genomes." That distinction must stay explicit in any write-
 The work is recorded as a Nextflow pipeline so every step is reproducible and the
 repo itself is the record of what was done. Runs are submitted to Seqera Platform.
 
-Pilot scope is a **single cultivar first** — CBA Captain (SRR32381426) — to
-de-risk before scaling to all 15. Planned stages:
+Pilot scope is a **small number of cultivars** — currently **two**, CBA Captain
+(SRR32381426) and Neelam (SRR32381425) — before scaling to all 15. Two on purpose:
+single-sample testing easily ships a pipeline that breaks on combination/aggregation
+steps (`collect()`, joins, cross-sample merges), so the pilot always runs ≥2 to keep
+those paths honest while staying cheap. Planned stages:
 
 1. **Gate zero — barcode integrity.** Pull SRR32381426 and confirm the stLFR
    barcode is intact in read2. Everything downstream depends on this. The ~242 bp
@@ -78,7 +81,8 @@ published numbers, stop having spent one genome's worth of effort.
 
 - NCBI BioProject **PRJNA1225167** — 15 stLFR WGS runs (DNBSEQ-T7), one per
   cultivar, ~88–109 Gbp each. Submitter: Murdoch University.
-- Pilot cultivar: **CBA Captain**, run **SRR32381426**, BioSample SAMN46879420.
+- Pilot cultivars (2): **CBA Captain** (run **SRR32381426**, BioSample SAMN46879420)
+  and **Neelam** (run **SRR32381425**, BioSample SAMN46879421).
 - Published assemblies + annotations: Figshare
   https://doi.org/10.6084/m9.figshare.28632494.v1
 - Reference used by the paper: CDC Frontier v2.0.

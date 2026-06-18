@@ -9,10 +9,13 @@ include { SraRun ; Result } from './types.nf'
 
 // Gate-zero pipeline: for each SRA/ENA run accession, subsample reads, summarise
 // read structure, and verify stLFR barcode integrity in read2. Designed to take
-// many accessions and parallelize per accession; the pilot passes only one.
+// many accessions and parallelize per accession.
 params {
     // Run accessions to check (one element per accession; parallelized).
-    accessions: List<String> = ['SRR32381426']
+    // The pilot uses TWO accessions on purpose so combination/aggregation steps
+    // (MULTIQC now; cross-sample merges later) are always exercised and the pipeline
+    // can't silently fail to scale beyond one sample. CBA Captain + Neelam.
+    accessions: List<String> = ['SRR32381426', 'SRR32381425']
 
     // Read pairs to subsample per accession for the check.
     check_reads: Integer = 2000000
