@@ -9,7 +9,7 @@ include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
 include { SUPERNOVA }      from './modules/supernova.nf'
 include { ASSEMBLY_STATS } from './modules/assembly_stats/main.nf'
-include { SraRun ; Result } from './types.nf'
+include { SraRun ; Result ; Assembly ; AssemblyStats } from './types.nf'
 
 // Gate-zero pipeline: for each SRA/ENA run accession, subsample reads, summarise
 // read structure, and verify stLFR barcode integrity in read2. Designed to take
@@ -48,19 +48,11 @@ workflow {
     reads     = FETCH_READS(runs, params.check_reads)
     structure = READ_STRUCTURE(reads)
     barcode   = BARCODE_CHECK(
-        reads, 
-        file("${projectDir}/assets/stlfr_barcode_whitelist.txt"), 
+        reads,
+        file("${projectDir}/assets/stlfr_barcode_whitelist.txt"),
         params.check_reads,
         params.pass_fraction as Float
     )
-
-    // Gather all per-accession QC into one MultiQC report: seqkit stats (native
-    // module) plus the barcode-integrity custom-content tables.
-    qc_files = structure
-        .map { r -> r.file }
-        .mix(barcode.mqc)
-        .collect()
-    report = MULTIQC(qc_files, channel.value('stLFR gate-zero'))
 
     // --- Stage 1: baseline Supernova assembly --------------------------------
     full = FETCH_FULL_READS(runs)
@@ -72,10 +64,22 @@ workflow {
     assemblies = SUPERNOVA(jobs, params.genome_size)
     asm_stats = ASSEMBLY_STATS(assemblies)
 
+    // Gather all per-accession QC into one MultiQC report: seqkit read-structure
+    // stats (native module), the barcode-integrity custom-content tables, and the
+    // per-assembly contiguity tables.
+    qc_files = structure
+        .map { r -> r.file }
+        .mix(barcode.mqc)
+        .mix(asm_stats.mqc)
+        .collect()
+    report = MULTIQC(qc_files, channel.value('stLFR gate-zero'))
+
     publish:
     read_structure = structure
     barcode_check  = barcode.res
     multiqc_report = report.report
+    assembly       = assemblies
+    assembly_stats = asm_stats.res
 }
 
 output {
@@ -87,5 +91,11 @@ output {
     }
     multiqc_report: Path {
         path '.'
+    }
+    assembly: Channel<Assembly> {
+        path { a -> "assemblies/${a.accession}/${a.assembler}-${a.coverage}x" }
+    }
+    assembly_stats: Channel<AssemblyStats> {
+        path { s -> "assemblies/${s.accession}/${s.assembler}-${s.coverage}x" }
     }
 }
