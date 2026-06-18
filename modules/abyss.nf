@@ -31,6 +31,8 @@ process ABYSS {
     abyss-pe name=${acc}_k${k} k=${k} j=${task.cpus} \\
         B=${params.abyss_bloom} in='${job.r1} ${job.r2}' \\
         ${acc}_k${k}-contigs.fa
+    # Rename ABySS's work-dir prefix (<acc>_k<k>) to the published variant identity
+    # (<acc>.abyss-k<k>) that matches the Assembly record's `assembler` field.
     gzip -c ${acc}_k${k}-contigs.fa > ${acc}.abyss-k${k}.contigs.fa.gz
     """
 
