@@ -312,9 +312,15 @@ Gotchas / open items:
 - **Typed params aren't visible inside modules.** A module reading `params.x` (e.g.
   `B=${params.abyss_bloom}` in ABYSS) logs `WARN: Access to undefined parameter` under
   the v2 typed-params preview; the value still resolves at runtime. Harmless noise.
-- **One `TODO(smoke)` script body:** the exact `lrtk FQCONVER` flags (and whether a
-  whitelist arg is needed) need confirming on a read subset — LRTK is the least-proven
-  tool. Also confirm the `abyss-pe` contigs output filename and tune `abyss_bloom`.
+- **`lrtk FQCONVER` interface — VERIFIED** (2026-06-18, via a Wave/quay biocontainer of
+  lrtk 2.0 run under docker on synthetic stLFR reads at this data's 100/116/132 layout;
+  0 unmapped, `BX:Z:` tags written, R2 trimmed to 100 bp). LRTK_CONVERT now does the real
+  thing: `-BW` takes a **bwa-indexed FASTA** of the barcodes (built in-process from the
+  whitelist TSV; bwa ships with lrtk), inputs must be **uncompressed** (we `gzip -dc`
+  first), outputs are **uncompressed** (we gzip after). The remaining real-run unknown is
+  only the recovery rate / runtime on the full ~220× data, not the CLI.
+- **Still `TODO(smoke)` for ABYSS:** confirm the `abyss-pe` contigs output filename and
+  tune `abyss_bloom` for the realised k-mer count / memory envelope at 220×.
 - **Baseline anchoring:** there is no same-input Supernova run; compare the ABySS contig
   N50 per k to the paper's published Supernova contig N50 (17–34 kb).
 - **First real run prerequisites:** none beyond the smoke checks above — no private image

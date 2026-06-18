@@ -45,7 +45,7 @@ workflow {
 
     // --- Stage 1 (open-stack baseline): full reads fetched here; assembly added next.
     full = FETCH_FULL_READS(runs)
-    converted = LRTK_CONVERT(full)
+    converted = LRTK_CONVERT(full, file("${projectDir}/assets/stlfr_barcode_whitelist.txt"))
 
     kmers   = channel.fromList(params.abyss_kmers)
     jobs    = converted.combine(kmers).map { conv, k ->
