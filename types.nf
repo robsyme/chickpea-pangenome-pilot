@@ -21,3 +21,16 @@ record ConvertedReads {       // LRTK output: BX:Z:-tagged insert reads
     r1: Path
     r2: Path
 }
+
+record AssemblyJob {          // one per (accession × k) after combine
+    accession: String
+    r1: Path
+    r2: Path
+    k: Integer
+}
+
+record Assembly {
+    accession: String
+    assembler: String         // 'abyss-k64' — encodes the full variant
+    fasta: Path
+}

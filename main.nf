@@ -6,6 +6,7 @@ include { FETCH_FULL_READS } from './modules/fetch_full_reads.nf'
 include { READ_STRUCTURE }   from './modules/read_structure.nf'
 include { BARCODE_CHECK }    from './modules/barcode_check/main.nf'
 include { LRTK_CONVERT }     from './modules/lrtk_convert.nf'
+include { ABYSS }            from './modules/abyss.nf'
 include { MULTIQC }          from './modules/multiqc.nf'
 include { SraRun ; Result } from './types.nf'
 
@@ -20,6 +21,11 @@ params {
 
     // Minimum fraction of reads carrying a valid barcode for the gate to pass.
     pass_fraction: Float = 0.80
+
+    // Stage 1 baseline: ABySS k-sweep (k must be < the 100 bp read length) and the
+    // Bloom-filter size (tune at smoke for the realised k-mer count).
+    abyss_kmers: List<Integer> = [64, 80, 96]
+    abyss_bloom: String = '20G'
 }
 
 workflow {
@@ -39,6 +45,12 @@ workflow {
     // --- Stage 1 (open-stack baseline): full reads fetched here; assembly added next.
     full = FETCH_FULL_READS(runs)
     converted = LRTK_CONVERT(full)
+
+    kmers   = channel.fromList(params.abyss_kmers)
+    jobs    = converted.combine(kmers).map { conv, k ->
+        record(accession: conv.accession, r1: conv.r1, r2: conv.r2, k: k)
+    }
+    contigs = ABYSS(jobs)
 
     qc_files = structure
         .map { r -> r.file }
