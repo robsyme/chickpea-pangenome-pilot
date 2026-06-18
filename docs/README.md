@@ -21,4 +21,9 @@ gotchas live in `AGENTS.md`.
   pipeline. Task-by-task plan in `plans/2026-06-18-stage1-baseline-assembly.md`.
 - `2026-06-18-stage1-baseline-assembly-build.md` — Stage 1 built and stub-validated
   end to end (the four assembly processes, the coverage fan-out, MultiQC merge).
-  Awaiting the private Supernova image for the first real run.
+  **Superseded:** Supernova turned out to be a delisted proprietary product with no
+  download, so the Supernova pipeline was removed in favour of the open stack below.
+- `2026-06-18-stage1b-abyss-contigs-design.md` — Stage 1 redesign: drop Supernova for
+  a fully-open, stLFR-native baseline (LRTK → ABySS contigs, k-sweep), with the
+  reference-free scaffolding chain (Tigmint → ARKS → LINKS → stLFR_GapCloser)
+  sketched for the next build.
