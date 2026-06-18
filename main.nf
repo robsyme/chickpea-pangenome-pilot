@@ -5,6 +5,7 @@ include { FETCH_READS }      from './modules/fetch_reads.nf'
 include { FETCH_FULL_READS } from './modules/fetch_full_reads.nf'
 include { READ_STRUCTURE }   from './modules/read_structure.nf'
 include { BARCODE_CHECK }    from './modules/barcode_check/main.nf'
+include { LRTK_CONVERT }     from './modules/lrtk_convert.nf'
 include { MULTIQC }          from './modules/multiqc.nf'
 include { SraRun ; Result } from './types.nf'
 
@@ -37,6 +38,7 @@ workflow {
 
     // --- Stage 1 (open-stack baseline): full reads fetched here; assembly added next.
     full = FETCH_FULL_READS(runs)
+    converted = LRTK_CONVERT(full)
 
     qc_files = structure
         .map { r -> r.file }

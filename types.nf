@@ -15,3 +15,9 @@ record Result {
     accession: String
     file: Path
 }
+
+record ConvertedReads {       // LRTK output: BX:Z:-tagged insert reads
+    accession: String
+    r1: Path
+    r2: Path
+}
