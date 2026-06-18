@@ -56,10 +56,15 @@ tw compute-envs primary set --name aws-batch-default
 | Nextflow work dir | `s3://scidev-playground-us-east-1/robsyme/chickpea-pilot/work` |
 | Published results (`outputDir`) | `s3://scidev-playground-us-east-1/robsyme/chickpea-pilot/results` |
 
-`outputDir` is set to the S3 results prefix **in the repo `nextflow.config`** so every
-launch publishes there. It must be an **absolute S3 prefix** — a relative/default
-`outputDir` lands in `./results` inside the ephemeral head-job container and is lost.
-Override for local runs with `-output-dir <path>`.
+**Separation of concerns:** the workflow in Git stays infrastructure-agnostic; all
+infra-specific settings live on the Launchpad pipeline / compute environment so the
+repo stays portable. That means `outputDir` (the S3 results prefix), the work dir,
+and allowed buckets are **not** in `nextflow.config` — they are set on the Launchpad
+pipeline (`outputDir`) and the CE (`workDir`, `allowBuckets`). Consequence: results
+publish to S3 only when launched **through the Launchpad pipeline**; a bare
+`tw launch <git-url>` would default `outputDir` to `./results` in the ephemeral
+head-job container and lose them — so pass infra config explicitly for ad-hoc runs,
+or just use the Launchpad. For a local run, pass `-output-dir <path>`.
 
 The CE work bucket is `s3://scidev-playground-us-east-1` (allow-listed on the CE).
 Reading S3 from a laptop needs a valid AWS SSO token (`aws sso login` if expired).
@@ -67,8 +72,9 @@ Reading S3 from a laptop needs a valid AWS SSO token (`aws sso login` if expired
 ## Launchpad pipeline
 
 `chickpea-gate-zero` — repo `https://github.com/robsyme/chickpea-pangenome-pilot`,
-CE `aws-batch-default`. Config: `outputDir` (S3 results) + `dumpHashes`. Its
-**pre-run script** exports `NXF_VER=26.04.4` and `NXF_SYNTAX_PARSER=v2`. The
+CE `aws-batch-default`. Config: `outputDir` (S3 results prefix — infra-specific, so
+it lives here, not in the repo). Its **pre-run script** exports `NXF_VER=26.04.4`
+and `NXF_SYNTAX_PARSER=v2`. The
 **"Enable Nextflow syntax parser v2" toggle is ON** (UI-only; the `tw` CLI does not
 expose it, and a CLI `tw pipelines update` will silently turn it off — edit this
 pipeline's config in the UI). Launch by name:

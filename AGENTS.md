@@ -142,6 +142,20 @@ tw launch <pipeline-url-or-name> --compute-env aws-cloud-us-east-1 --wait SUBMIT
   workspace.
 - The Nextflow pipeline in this repo is the canonical record of the analysis — keep
   it runnable and keep parameter/version choices in code, not just prose.
+- **Keep the workflow in Git infrastructure-agnostic.** Settings that name *our*
+  infrastructure — `outputDir`, the work dir, allowed S3 buckets, the compute
+  environment — live on the Seqera Platform Launchpad pipeline / CE, **not** in
+  `nextflow.config`. The repo should be runnable against someone else's infra without
+  edits. (Tradeoff: results publish to S3 only when launched via the Launchpad
+  pipeline; see next point.)
+- **Default to the Launchpad pipeline (`chickpea-gate-zero`), not the git URL.** The
+  Launchpad bundles the infra config above plus the pre-run (`NXF_VER` +
+  `NXF_SYNTAX_PARSER`). A bare `tw launch <git-url>` carries none of it and silently
+  falls back to defaults (this is how a verification run lost `outputDir` and left
+  stale results). Use the git URL only to run a *different* repo/branch not worth
+  registering (e.g. a standalone reproducer). Edit the Launchpad pipeline's config in
+  the **UI**, not via `tw pipelines update` (the CLI silently disables the v2-parser
+  toggle).
 - **Prefer resuming over fresh launches.** We build the workflow iteratively, so by
   default resume a prior run (`tw runs relaunch -i <runId> …`) rather than launching
   fresh. This reuses completed tasks from the work-dir cache — especially the
