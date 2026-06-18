@@ -25,8 +25,14 @@ process FETCH_FULL_READS {
     set -euo pipefail
     rm -rf dl && mkdir dl
     fastq-dl --accession ${acc} --outdir dl >&2
-    mv "\$(ls dl/*_1.fastq.gz | head -1)" ${acc}_R1.fastq.gz
-    mv "\$(ls dl/*_2.fastq.gz | head -1)" ${acc}_R2.fastq.gz
+    r1f=\$(ls dl/*_1.fastq.gz 2>/dev/null | head -1)
+    r2f=\$(ls dl/*_2.fastq.gz 2>/dev/null | head -1)
+    [ -n "\$r1f" ] && [ -n "\$r2f" ] || { echo "[FETCH_FULL] fastq-dl produced no paired files for ${acc}" >&2; exit 1; }
+    mv "\$r1f" ${acc}_R1.fastq.gz
+    mv "\$r2f" ${acc}_R2.fastq.gz
+    # Outputs must be valid, non-empty gzip before the expensive assembly stage.
+    gzip -t ${acc}_R1.fastq.gz
+    gzip -t ${acc}_R2.fastq.gz
     rm -rf dl
     """
 
