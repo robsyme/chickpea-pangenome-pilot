@@ -1,5 +1,6 @@
 work/
 results/
+.worktrees/
 .nextflow/
 .nextflow.log*
 __pycache__/
