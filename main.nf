@@ -2,6 +2,7 @@ nextflow.enable.types = true
 nextflow.enable.moduleBinaries = true
 
 include { FETCH_READS }    from './modules/fetch_reads.nf'
+include { FETCH_FULL_READS } from './modules/fetch_full_reads.nf'
 include { READ_STRUCTURE } from './modules/read_structure.nf'
 include { BARCODE_CHECK }  from './modules/barcode_check/main.nf'
 include { MULTIQC }        from './modules/multiqc.nf'
@@ -47,6 +48,9 @@ workflow {
         .mix(barcode.mqc)
         .collect()
     report = MULTIQC(qc_files, channel.value('stLFR gate-zero'))
+
+    // --- Stage 1: baseline Supernova assembly --------------------------------
+    full = FETCH_FULL_READS(runs)
 
     publish:
     read_structure = structure
