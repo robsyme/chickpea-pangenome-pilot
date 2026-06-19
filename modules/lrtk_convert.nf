@@ -18,6 +18,7 @@ process LRTK_CONVERT {
     tag "${reads.accession}"
     conda 'bioconda::lrtk=2.0'
     cpus 8
+    memory 12.GB
 
     input:
     reads: ReadPair
@@ -42,9 +43,13 @@ process LRTK_CONVERT {
     gzip -dc ${reads.r1} > r1.fastq
     gzip -dc ${reads.r2} > r2.fastq
 
+    # -F No -S No: skip lrtk's fastp filter and the barcode-SORT (both default ON in
+    # lrtk and silently expensive). ABySS/Tigmint/ARKS don't need barcode-sorted or
+    # fastp-filtered input, and the sort is the single biggest, memory-hungry stage.
     lrtk FQCONVER -IT stLFR -BW wl.fa \\
         -I1 r1.fastq -I2 r2.fastq \\
         -O1 ${acc}.bx_R1.fastq -O2 ${acc}.bx_R2.fastq \\
+        -F No -S No \\
         -T ${task.cpus}
 
     # lrtk writes uncompressed; recompress to the published handoff.
